@@ -1,10 +1,9 @@
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
+from langchain_openai import ChatOpenAI;
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema.output_parser import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from ..prompts.legal_template import legal_system_prompt
 from ..config import settings
+from ..prompts.legal_template import legal_system_prompt
 
 class LegalAdvisorChain:
     def __init__(self):
@@ -14,26 +13,18 @@ class LegalAdvisorChain:
             model="gpt-3.5-turbo"
         )
         
-        self.memory = ConversationBufferMemory(
-            return_messages=True,
-            output_key="response",
-            input_key="question"
-        )
-        
         self.prompt = ChatPromptTemplate.from_messages([
             legal_system_prompt,
             ("user", "{question}")
         ])
 
         self.chain = (
-            RunnablePassthrough.assign(
-                history=lambda _: self.memory.load_memory_variables({})["history"]
-            )
-            | self.prompt
-            | self.llm
+            {"question": RunnablePassthrough()} 
+            | self.prompt 
+            | self.llm 
             | StrOutputParser()
         )
-    
+
     async def get_response(self, question: str) -> str:
         """
         Get a response from the legal advisor chain.
@@ -45,14 +36,8 @@ class LegalAdvisorChain:
             str: The AI-generated response
         """
         try:
-            response = await self.chain.ainvoke({"question": question})
-            
-            self.memory.save_context(
-                {"question": question},
-                {"response": response}
-            )
-            
+            response = await self.chain.ainvoke(question)
             return response
         except Exception as e:
-            print(f"Error in legal advisor chain: {e}")
+            print(f"Error in legal advisor chain: {str(e)}")
             return "I apologize, but I encountered an error while processing your question. Please try again." 
