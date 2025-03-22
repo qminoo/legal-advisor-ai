@@ -1,7 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain.memory import ConversationBufferMemory
+from langchain_core.runnables import RunnablePassthrough
 from ..prompts.legal_template import legal_system_prompt
 from ..config import settings
 
@@ -11,36 +12,27 @@ class LegalAdvisorChain:
             openai_api_key=settings.OPENAI_API_KEY,
             temperature=0.7,
             model="gpt-3.5-turbo"
+        )
+        
+        self.memory = ConversationBufferMemory(
+            return_messages=True,
+            output_key="response",
+            input_key="question"
+        )
+        
+        self.prompt = ChatPromptTemplate.from_messages([
+            legal_system_prompt,
+            ("user", "{question}")
+        ])
+
+        self.chain = (
+            RunnablePassthrough.assign(
+                history=lambda _: self.memory.load_memory_variables({})["history"]
             )
-        
-        self.messages = []
-        
-        self.prompt = ChatPromptTemplate.from_messages([
-            legal_system_prompt,
-            *self.messages,
-            ("user", "{question}")
-        ])
-        
-        self.chain = self.prompt | self.llm | StrOutputParser()
-    
-    def _update_messages(self, question: str, answer: str):
-        """
-        Update the conversation history with the new question and answer.
-        
-        Args:
-            question: The user's question
-            answer: The AI's response
-        """
-        self.messages.append(HumanMessage(content=question))
-        self.messages.append(AIMessage(content=answer))
-        
-        self.prompt = ChatPromptTemplate.from_messages([
-            legal_system_prompt,
-            *self.messages,
-            ("user", "{question}")
-        ])
-        
-        self.chain = self.prompt | self.llm | StrOutputParser()
+            | self.prompt
+            | self.llm
+            | StrOutputParser()
+        )
     
     async def get_response(self, question: str) -> str:
         """
@@ -55,7 +47,10 @@ class LegalAdvisorChain:
         try:
             response = await self.chain.ainvoke({"question": question})
             
-            self._update_messages(question, response)
+            self.memory.save_context(
+                {"question": question},
+                {"response": response}
+            )
             
             return response
         except Exception as e:
