@@ -1,21 +1,44 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from ..models.database import get_db
+from ..crud.chat import create_chat_session, create_chat_message, get_chat_history
 from ..chains.legal_advisor import LegalAdvisorChain
+from pydantic import BaseModel
 
-router = APIRouter(tags=["chat"])
-
-legal_advisor = LegalAdvisorChain()
+router = APIRouter()
 
 class ChatRequest(BaseModel):
-    question: str
+    message: str
 
-class ChatResponse(BaseModel):
-    response: str
-
-@router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+@router.post("/chat")
+async def chat(
+    chat_request: ChatRequest,
+    session_id: int = None,
+    db: Session = Depends(get_db)
+):
     try:
-        response = await legal_advisor.get_response(request.question)
-        return ChatResponse(response=response)
+        if not session_id:
+            chat_session = await create_chat_session(db)
+            session_id = chat_session.id
+
+        await create_chat_message(db, session_id, "user", chat_request.message)
+
+        legal_chain = LegalAdvisorChain()
+        response = await legal_chain.get_response(chat_request.message)
+
+        await create_chat_message(db, session_id, "assistant", response)
+
+        return {
+            "session_id": session_id,
+            "response": response
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/chat-history/{session_id}")
+async def get_session_history(
+    session_id: int,
+    db: Session = Depends(get_db)
+):
+    messages = await get_chat_history(db, session_id)
+    return {"messages": messages} 
