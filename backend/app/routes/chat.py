@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..models.database import get_db
-from ..crud.chat import create_chat_session, create_chat_message, get_chat_history
+from ..crud.chat import create_chat_session, create_chat_message, get_all_chat_sessions, get_chat_history
 from ..chains.legal_advisor import LegalAdvisorChain
 from pydantic import BaseModel
 
@@ -42,3 +42,10 @@ async def get_session_history(
 ):
     messages = await get_chat_history(db, session_id)
     return {"messages": messages} 
+
+@router.get("/all-sessions")
+async def get_all_sessions(
+    db: Session = Depends(get_db)
+):
+    sessions = await get_all_chat_sessions(db)
+    return sessions
