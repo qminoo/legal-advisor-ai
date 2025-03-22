@@ -4,6 +4,7 @@ from typing import Optional
 
 API_URL_CHAT = os.getenv("API_URL_CHAT", "http://localhost:8000/chat")
 API_URL_CHAT_HISTORY = os.getenv("API_URL_CHAT_HISTORY", "http://localhost:8000/chat-history")
+API_URL_ALL_SESSIONS = os.getenv("API_URL_ALL_SESSIONS", "http://localhost:8000/all-sessions")
 
 def chat(message: str, session_id: Optional[int] = None) -> dict:
     params = {}
@@ -22,5 +23,13 @@ def get_chat_history(session_id: int) -> dict:
     
     if response.status_code != 200:
         raise Exception(f"Failed to fetch chat history: {response.text}")
+    
+    return response.json()
+
+def get_all_sessions() -> dict:
+    response = requests.get(API_URL_ALL_SESSIONS)
+    
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch all sessions: {response.text}")
     
     return response.json()
