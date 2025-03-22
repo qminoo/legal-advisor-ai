@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import health 
+from .routes import health, chat
 
 app = FastAPI(title="Legal Advisor AI")
 
@@ -13,3 +13,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(chat.router)
