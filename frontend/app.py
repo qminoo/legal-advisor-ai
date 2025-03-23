@@ -1,5 +1,6 @@
 import streamlit as st
 from api import chat, get_chat_history, get_all_sessions
+from datetime import datetime
 
 st.set_page_config(page_title="Legal Advisor AI", page_icon="⚖️")
 
@@ -37,9 +38,17 @@ if user_input := st.chat_input("Ask a legal question:", disabled=input_disabled)
                 session_id=st.session_state.session_id
             )
             
-            # Update session_id if this is a new conversation
             if not st.session_state.session_id and "session_id" in response:
-                st.session_state.session_id = response["session_id"]
+                new_session_id = response["session_id"]
+                st.session_state.session_id = new_session_id
+                
+                if "formatted_sessions" in st.session_state:
+                    created_at = response["created_at"][:16]
+                    new_session_key = f"Session {new_session_id} ({created_at})"        
+                    new_sessions_dict = {new_session_key: new_session_id}
+                    new_sessions_dict.update(st.session_state.formatted_sessions)
+                    st.session_state.formatted_sessions = new_sessions_dict
+                    st.session_state.selected_session = new_session_key
             
             if "response" in response:
                 assistant_message = {"role": "assistant", "content": response["response"]}
@@ -57,11 +66,13 @@ with st.sidebar:
         st.session_state.session_id = None
         st.session_state.messages = []
         st.session_state.loading_session = False
+        if "selected_session" in st.session_state:
+            st.session_state.selected_session = None
         st.rerun()
 
     st.write("Previous Sessions:")
     
-    if "sessions_loaded" not in st.session_state or st.session_state.get("refresh_sessions", False):
+    if "formatted_sessions" not in st.session_state:
         try:
             with st.spinner("Loading previous sessions..."):
                 sessions = fetch_and_validate_sessions()
@@ -69,8 +80,6 @@ with st.sidebar:
                     f"Session {s['id']} ({s['created_at'][:16]})": s['id']
                     for s in sessions
                 }
-                st.session_state.sessions_loaded = True
-                st.session_state.refresh_sessions = False
         except Exception as e:
             st.error(f"Failed to load sessions: {str(e)}")
             print(f"Debug - Error details: {str(e)}")
@@ -78,8 +87,9 @@ with st.sidebar:
     selected = st.selectbox(
         "Select a session",
         label_visibility="hidden",
-        options=list(st.session_state.get("formatted_sessions", {}).keys()),
+        options=list(st.session_state.formatted_sessions.keys()),
         index=None,
+        key="selected_session",
         placeholder="Choose a previous session..."
     )
     

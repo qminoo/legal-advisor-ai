@@ -20,6 +20,7 @@ async def chat(
         if not session_id:
             chat_session = await create_chat_session(db)
             session_id = chat_session.id
+            created_at = chat_session.created_at
 
         await create_chat_message(db, session_id, "user", chat_request.message)
 
@@ -30,6 +31,7 @@ async def chat(
 
         return {
             "session_id": session_id,
+            "created_at": str(created_at),
             "response": response
         }
     except Exception as e:
