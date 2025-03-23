@@ -11,7 +11,7 @@ class ChatRequest(BaseModel):
     message: str
 
 @router.post("/chat")
-async def chat(
+async def send_chat_message(
     chat_request: ChatRequest,
     session_id: int = None,
     db: Session = Depends(get_db)

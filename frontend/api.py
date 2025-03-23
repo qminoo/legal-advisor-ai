@@ -6,7 +6,7 @@ API_URL_CHAT = os.getenv("API_URL_CHAT", "http://localhost:8000/chat")
 API_URL_CHAT_HISTORY = os.getenv("API_URL_CHAT_HISTORY", "http://localhost:8000/chat-history")
 API_URL_SESSIONS = os.getenv("API_URL_SESSIONS", "http://localhost:8000/sessions")
 
-def chat(message: str, session_id: Optional[int] = None) -> dict:
+def send_chat_message(message: str, session_id: Optional[int] = None) -> dict:
     params = {}
     if session_id:
         params["session_id"] = session_id
