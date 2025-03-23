@@ -30,7 +30,18 @@ async def get_chat_history(db: Session, session_id: int):
     ).order_by(ChatMessage.created_at.asc()).all()
 
 async def get_all_chat_sessions(db: Session):
-    sessions = db.query(ChatSession).order_by(ChatSession.created_at.desc()).all()
-    response = {"sessions": [{"id": session.id, "created_at": str(session.created_at)} for session in sessions]}
+    sessions = db.query(
+        ChatSession.id, 
+        ChatSession.created_at
+    ).order_by(
+        ChatSession.created_at.desc()
+    ).all()
+    
+    response = {
+        "sessions": [
+            {"id": session.id, "created_at": str(session.created_at)} 
+            for session in sessions
+        ]
+    }
     return response
  
