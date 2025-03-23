@@ -9,8 +9,8 @@ class LegalAdvisorChain:
     def __init__(self):
         self.llm = ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
-            temperature=0.7,
-            model="gpt-3.5-turbo"
+            temperature=1,
+            model="gpt-4o-mini"
         )
         
         self.prompt = ChatPromptTemplate.from_messages([
