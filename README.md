@@ -19,7 +19,7 @@ This application allows users to ask legal questions and receive AI-generated re
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.8+
 - OpenAI API key
 - PostgreSQL
 - Docker and Docker Compose
