@@ -47,8 +47,13 @@ async def get_session_history(
     session_id: int,
     db: Session = Depends(get_db)
 ):
-    messages = await get_chat_history(db, session_id)
-    return {"messages": messages} 
+    try:
+        messages = await get_chat_history(db, session_id)
+        if not messages:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {"messages": messages}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.get("/sessions")
 async def get_sessions(
