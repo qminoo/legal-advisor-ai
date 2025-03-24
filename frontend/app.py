@@ -8,6 +8,8 @@ def init_session_state():
         st.session_state.messages = []
         st.session_state.loading_session = False
         st.session_state.session_to_load = None
+    if "formatted_sessions" not in st.session_state:
+        st.session_state.formatted_sessions = {}
 
 def display_chat_history():
     """Display existing chat messages."""
@@ -133,6 +135,7 @@ def main():
     st.title("Legal Advisor AI")
     
     init_session_state()
+    load_sessions()
     
     input_disabled = st.session_state.get("loading_session", False)
     
@@ -148,8 +151,6 @@ def main():
             start_new_chat()
 
         st.write("Previous Sessions:")
-        
-        load_sessions()
         
         # Session selector
         selected = st.selectbox(
