@@ -10,6 +10,10 @@ def init_session_state():
         st.session_state.session_to_load = None
     if "formatted_sessions" not in st.session_state:
         st.session_state.formatted_sessions = {}
+    if "sessions_loaded" not in st.session_state:
+        st.session_state.sessions_loaded = False
+    if "history_loaded" not in st.session_state:
+        st.session_state.history_loaded = False
 
 def display_chat_history():
     """Display existing chat messages."""
@@ -61,13 +65,13 @@ def handle_new_message(user_message):
             display_assistant_response(response)
     except Exception as e:
         st.error(f"Error: {str(e)}")
-        print(f"Debug - Error details: {str(e)}")
 
 def start_new_chat():
     """Reset the UI for a new chat session."""
     st.session_state.session_id = None
     st.session_state.messages = []
     st.session_state.loading_session = False
+    st.session_state.history_loaded = False
     if "selected_session" in st.session_state:
         st.session_state.selected_session = None
     st.rerun()
@@ -87,47 +91,50 @@ def format_sessions_for_display(sessions):
 
 def load_sessions():
     """Load chat sessions from the API."""
-    if "formatted_sessions" not in st.session_state:
+    if not st.session_state.sessions_loaded:
         try:
             with st.spinner("Loading previous sessions..."):
                 sessions = fetch_and_validate_sessions()
-                st.session_state.formatted_sessions = format_sessions_for_display(sessions)
+                formatted_sessions = format_sessions_for_display(sessions)
+                
+                st.session_state.formatted_sessions = formatted_sessions
+                st.session_state.sessions_loaded = True
         except Exception as e:
             st.error(f"Failed to load sessions: {str(e)}")
-            print(f"Debug - Error details: {str(e)}")
 
 def load_chat_history(session_id):
     """Load chat history for the selected session."""
-    with st.spinner("Loading chat history..."):
-        try:
-            response = get_chat_history(session_id)
-            messages = response["messages"]
-            st.session_state.messages = [
-                {"role": msg["role"], "content": msg["content"]}
-                for msg in messages
-            ]
-            st.session_state.loading_session = False
-            st.session_state.session_to_load = None
-            st.rerun()
-        except Exception as e:
-            st.error(f"Failed to load chat history: {str(e)}")
-            print(f"Debug - Chat history error: {str(e)}")
-            st.session_state.loading_session = False
-            st.session_state.session_to_load = None
+    if not st.session_state.history_loaded:
+        with st.spinner("Loading chat history..."):
+            try:
+                response = get_chat_history(session_id)
+                messages = response["messages"]
+                st.session_state.messages = [
+                    {"role": msg["role"], "content": msg["content"]}
+                    for msg in messages
+                ]
+                st.session_state.loading_session = False
+                st.session_state.session_to_load = None
+                # Mark history as loaded
+                st.session_state.history_loaded = True
+            except Exception as e:
+                st.error(f"Failed to load chat history: {str(e)}")
+                st.session_state.loading_session = False
+                st.session_state.session_to_load = None
 
 def handle_session_selection(selected):
     """Process when a user selects a different chat session."""
     if selected:
         new_session_id = st.session_state.formatted_sessions[selected]
         
-        if st.session_state.get("loading_session") and st.session_state.get("session_to_load") == new_session_id:
-            load_chat_history(st.session_state.session_id)
-        
-        elif new_session_id != st.session_state.session_id:
+        if new_session_id != st.session_state.session_id:
+            st.session_state.history_loaded = False
             st.session_state.session_id = new_session_id
             st.session_state.loading_session = True
             st.session_state.session_to_load = new_session_id
-            st.rerun()
+            
+            if not st.session_state.history_loaded:
+                st.rerun()
 
 def main():
     """Main application function."""
@@ -136,6 +143,9 @@ def main():
     
     init_session_state()
     load_sessions()
+    
+    if st.session_state.session_id and st.session_state.loading_session and not st.session_state.history_loaded:
+        load_chat_history(st.session_state.session_id)
     
     input_disabled = st.session_state.get("loading_session", False)
     
