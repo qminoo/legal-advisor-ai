@@ -23,7 +23,7 @@ services:
       - "8501:8501"
     environment:
       - API_URL_CHAT=http://backend:8000/chat
-      - API_URL_CHAT_HISTORY=http://backend:8000/chat-history/{session_id}
+      - API_URL_CHAT_HISTORY=http://backend:8000/chat-history
       - API_URL_SESSIONS=http://backend:8000/sessions
     depends_on:
       - backend
