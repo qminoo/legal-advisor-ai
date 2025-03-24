@@ -17,6 +17,7 @@ async def send_chat_message(
     db: Session = Depends(get_db)
 ):
     try:
+        created_at = None 
         if not session_id:
             chat_session = await create_chat_session(db)
             session_id = chat_session.id
@@ -29,11 +30,15 @@ async def send_chat_message(
 
         await create_chat_message(db, session_id, "assistant", response)
 
-        return {
+        response_data = {
             "session_id": session_id,
-            "created_at": str(created_at),
             "response": response
         }
+        
+        if created_at:
+            response_data["created_at"] = str(created_at)
+
+        return response_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
